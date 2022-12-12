@@ -1,0 +1,7 @@
+#Sat Dec 10 14:19:46 IST 2022
+base.1=/Users/sukhada/AndroidStudioProjects/MidiSynth_1/Application/build/intermediates/dex/debug/mergeProjectDexDebug/out/classes.dex
+path.1=classes.dex
+base.0=/Users/sukhada/AndroidStudioProjects/MidiSynth_1/Application/build/intermediates/dex/debug/mergeExtDexDebug/out/classes.dex
+renamed.1=classes2.dex
+renamed.0=classes.dex
+path.0=classes.dex
