@@ -21,6 +21,11 @@ package com.example.android.common.midi;
  * These values are defined in the MIDI Standard 1.0
  * available from the MIDI Manufacturers Association.
  */
+
+   /**
+     * MKSM Alankar app notes -  similar class exists in midi scope called MidiPrinter.
+     * Both of them tell hex codes for midi codes just naming convention is different.
+     * */
 public class MidiConstants {
     protected final static String TAG = "MidiTools";
     public static final byte STATUS_COMMAND_MASK = (byte) 0xF0;
