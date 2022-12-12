@@ -77,6 +77,9 @@ public class SynthEngine extends MidiReceiver {
         }
     }
 
+    /**
+     * MyReceiver receives midicommand and implements it, like turns sound on off, blends pitch or by default generates log
+     * */
     private class MyReceiver extends MidiReceiver {
         @Override
         public void onSend(byte[] data, int offset, int count, long timestamp)
