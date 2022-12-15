@@ -16,6 +16,7 @@
 
 package com.example.android.common.midi.synth;
 
+import android.content.Context;
 import android.media.midi.MidiReceiver;
 import android.util.Log;
 
@@ -24,10 +25,15 @@ import com.example.android.common.midi.MidiEventScheduler;
 import com.example.android.common.midi.MidiEventScheduler.MidiEvent;
 import com.example.android.common.midi.MidiFramer;
 
+import java.io.BufferedReader;
+import java.io.Console;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Very simple polyphonic, single channel synthesizer. It runs a background
@@ -80,6 +86,22 @@ public class SynthEngine extends MidiReceiver {
     /**
      * MyReceiver receives midicommand and implements it, like turns sound on off, blends pitch or by default generates log
      * */
+
+    /*
+    * Date:15/12/2022 :
+    * url: https://developer.android.com/reference/android/media/midi/package-summary#classes
+    * this says -
+    * MidiReceiver is Interface for sending and receiving data to and from a MIDI device.
+    * So we need to replace this one as we don't have a midi device sending anything to us. we instead, will be
+    * creating byte msgs i.e. data using timestamp, midicode and lookup table
+    * and trigger some method like this onsend method.
+    *
+    * so synthEngine will have Receiver but another receiver that doesnot listen to a device,
+    * instead, takes input as file pointed by user,
+    * creates array of data and triggers them by differences in the timestamp of those individual msgs.
+    *
+     * */
+
     private class MyReceiver extends MidiReceiver {
         @Override
         public void onSend(byte[] data, int offset, int count, long timestamp)
@@ -102,8 +124,89 @@ public class SynthEngine extends MidiReceiver {
                 mFreeVoices.clear();
                 break;
             default:
+
                 logMidiMessage(data, offset, count);
                 break;
+            }
+        }
+    }
+
+    private class AlankarAppMidiFileParser {
+
+
+        private List<String> getMidiCodesFromFile(Context context, String filename){
+            ArrayList<String> midiCodesInFile = new ArrayList<>();
+
+            BufferedReader bufferedReader = null;
+            try {
+                bufferedReader = new BufferedReader(new InputStreamReader
+                        (context.getAssets().open(filename), StandardCharsets.UTF_8));
+                String line;
+                while ((line = bufferedReader.readLine()) != null) {
+                    //add the lines in some arraylist if you want to set them.
+                    midiCodesInFile.add(line);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                if (bufferedReader != null) {
+                    try {
+                        bufferedReader.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            return midiCodesInFile;
+        }
+
+        private void triggerSynth(List<String> midiCodesListFromFile){
+            try{
+                if(midiCodesListFromFile==null||midiCodesListFromFile.isEmpty()){
+                    return;
+                }
+                for(String midiCode: midiCodesListFromFile){
+                    //parse code, create byte data, call the aboce switch case
+                    byte[] buffer = new byte[32];
+                    int numBytes = 0;
+                    int channel = 3; // MIDI channels 1-16 are encoded as 0-15.
+                    int group = 0;
+                    buffer[numBytes++] = (byte)(0x90 + (channel - 1)); // note on
+                    buffer[numBytes++] = (byte)60; // pitch is middle C
+                    buffer[numBytes++] = (byte)127; // max velocity
+                    int offset = 0;
+                    final long NANOS_PER_SECOND = 1000000000L;
+                    long now = System.nanoTime();
+                    long future = now + (2 * NANOS_PER_SECOND);
+                    onSend(buffer, offset, numBytes, future);
+                }
+            }catch (Exception e)
+            {e.printStackTrace();}
+        }
+
+        public void onSend(byte[] data, int offset, int count, long timestamp)
+                throws IOException {
+            byte command = (byte) (data[0] & MidiConstants.STATUS_COMMAND_MASK);
+            int channel = (byte) (data[0] & MidiConstants.STATUS_CHANNEL_MASK);
+            switch (command) {
+                case MidiConstants.STATUS_NOTE_OFF:
+                    noteOff(channel, data[1], data[2]);
+                    break;
+                case MidiConstants.STATUS_NOTE_ON:
+                    noteOn(channel, data[1], data[2]);
+                    break;
+                case MidiConstants.STATUS_PITCH_BEND:
+                    int bend = (data[2] << 7) + data[1];
+                    pitchBend(channel, bend);
+                    break;
+                case MidiConstants.STATUS_PROGRAM_CHANGE:
+                    mProgram = data[1];
+                    mFreeVoices.clear();
+                    break;
+                default:
+
+                    logMidiMessage(data, offset, count);
+                    break;
             }
         }
     }
